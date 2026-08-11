@@ -1,0 +1,272 @@
+[
+  {
+    "id": 1,
+    "title": "Video Call Drops",
+    "initial_statement": "My video calls disconnect randomly at home.",
+    "hidden_root_cause": "EMI from damaged USB-C cable",
+    "osi_layer": "L1",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 2,
+    "title": "Intermittent Web Access",
+    "initial_statement": "Websites load slowly, sometimes fail entirely.",
+    "hidden_root_cause": "DNS server intermittent timeout",
+    "osi_layer": "L7",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 3,
+    "title": "No Internet After Reboot",
+    "initial_statement": "PC shows 'no internet' after restart.",
+    "hidden_root_cause": "DHCP lease conflict",
+    "osi_layer": "L3",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 4,
+    "title": "Printer Unreachable",
+    "initial_statement": "Office printer not reachable from some PCs.",
+    "hidden_root_cause": "VLAN misconfiguration",
+    "osi_layer": "L2",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 5,
+    "title": "VPN Keeps Disconnecting",
+    "initial_statement": "VPN drops every 10 minutes.",
+    "hidden_root_cause": "MTU mismatch causing fragmentation",
+    "osi_layer": "L3/L4",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 6,
+    "title": "Slow File Transfers",
+    "initial_statement": "Large file copies to server are very slow.",
+    "hidden_root_cause": "Duplex mismatch on switch port",
+    "osi_layer": "L1/L2",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 7,
+    "title": "One Site Down, Rest Fine",
+    "initial_statement": "Only one website won't load; others work.",
+    "hidden_root_cause": "DNS record misconfiguration",
+    "osi_layer": "L7",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 8,
+    "title": "Wi-Fi Drops in One Room",
+    "initial_statement": "Wi-Fi disconnects only in the back room.",
+    "hidden_root_cause": "Channel interference from neighboring AP",
+    "osi_layer": "L1",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 9,
+    "title": "Voice Call Choppy",
+    "initial_statement": "IP phone calls sound choppy during peak hours.",
+    "hidden_root_cause": "QoS not applied for voice traffic",
+    "osi_layer": "L3",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 10,
+    "title": "New Laptop Can't Join Network",
+    "initial_statement": "New laptop can't get an IP address.",
+    "hidden_root_cause": "DHCP pool exhaustion",
+    "osi_layer": "L3",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 11,
+    "title": "Remote Office Unreachable",
+    "initial_statement": "Branch office lost connectivity to HQ.",
+    "hidden_root_cause": "WAN link flapping",
+    "osi_layer": "L1/L2",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 12,
+    "title": "Application Timeout",
+    "initial_statement": "Internal app times out intermittently.",
+    "hidden_root_cause": "Asymmetric routing",
+    "osi_layer": "L3",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 13,
+    "title": "Broadcast Storm",
+    "initial_statement": "Network slows to a crawl network-wide.",
+    "hidden_root_cause": "Switching loop / STP misconfiguration",
+    "osi_layer": "L2",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 14,
+    "title": "Server Unreachable Externally",
+    "initial_statement": "Server accessible internally, not externally.",
+    "hidden_root_cause": "NAT/firewall rule misconfigured",
+    "osi_layer": "L3/L4",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 15,
+    "title": "Random Packet Loss",
+    "initial_statement": "Ping shows random packet loss to gateway.",
+    "hidden_root_cause": "Faulty NIC or cable",
+    "osi_layer": "L1",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 16,
+    "title": "Users Can't Login to Domain",
+    "initial_statement": "Users randomly can't authenticate.",
+    "hidden_root_cause": "Clock skew (Kerberos time sync)",
+    "osi_layer": "L7",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 17,
+    "title": "Two Devices Same IP",
+    "initial_statement": "Network shows duplicate IP conflict alerts.",
+    "hidden_root_cause": "Static IP overlapping DHCP scope",
+    "osi_layer": "L3",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 18,
+    "title": "High Latency to Cloud App",
+    "initial_statement": "Cloud app is slow only from one office.",
+    "hidden_root_cause": "Suboptimal BGP path / routing",
+    "osi_layer": "L3",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 19,
+    "title": "Camera Feed Freezes",
+    "initial_statement": "Security camera feed freezes periodically.",
+    "hidden_root_cause": "Bandwidth saturation on shared link",
+    "osi_layer": "L1/L7",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 20,
+    "title": "SSH Access Denied Suddenly",
+    "initial_statement": "Admin can't SSH into router anymore.",
+    "hidden_root_cause": "ACL inadvertently blocking management traffic",
+    "osi_layer": "L3/L4",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 21,
+    "title": "Multicast Video Not Working",
+    "initial_statement": "IPTV streams don't work on new switch.",
+    "hidden_root_cause": "IGMP snooping misconfigured",
+    "osi_layer": "L2/L3",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 22,
+    "title": "Site-to-Site Tunnel Flapping",
+    "initial_statement": "VPN tunnel between sites keeps flapping.",
+    "hidden_root_cause": "ISP-side MTU/black-hole issue",
+    "osi_layer": "L3",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 23,
+    "title": "Wireless Roaming Fails",
+    "initial_statement": "Devices drop Wi-Fi when moving between floors.",
+    "hidden_root_cause": "AP roaming/band-steering misconfiguration",
+    "osi_layer": "L1/L2",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 24,
+    "title": "Email Delayed",
+    "initial_statement": "Emails arrive with long delays.",
+    "hidden_root_cause": "Mail relay DNS (MX/SPF) misconfiguration",
+    "osi_layer": "L7",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 25,
+    "title": "Port Security Lockout",
+    "initial_statement": "User's port randomly goes into err-disabled.",
+    "hidden_root_cause": "Port security violation from device MAC flap",
+    "osi_layer": "L2",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 26,
+    "title": "Load Balancer Errors",
+    "initial_statement": "Web app returns intermittent 502 errors.",
+    "hidden_root_cause": "Backend health-check misconfiguration",
+    "osi_layer": "L4/L7",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 27,
+    "title": "IPv6 Connectivity Fails",
+    "initial_statement": "Some sites unreachable after IPv6 rollout.",
+    "hidden_root_cause": "IPv6 routing/DNS AAAA misconfiguration",
+    "osi_layer": "L3",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 28,
+    "title": "High CPU on Core Switch",
+    "initial_statement": "Network sluggish; switch CPU spikes.",
+    "hidden_root_cause": "Routing protocol flapping/loop",
+    "osi_layer": "L2/L3",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 29,
+    "title": "SD-WAN Path Selection Issue",
+    "initial_statement": "Branch traffic taking wrong (slow) path.",
+    "hidden_root_cause": "SD-WAN policy misconfiguration",
+    "osi_layer": "L3",
+    "credit_start": 10,
+    "question_limit": 14
+  },
+  {
+    "id": 30,
+    "title": "Certificate Warning on App",
+    "initial_statement": "Internal app suddenly shows a security warning.",
+    "hidden_root_cause": "Expired TLS certificate",
+    "osi_layer": "L7",
+    "credit_start": 10,
+    "question_limit": 14
+  }
+]
