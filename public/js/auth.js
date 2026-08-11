@@ -7,8 +7,9 @@
   if (loginBtn) {
     loginBtn.addEventListener('click', async () => {
       await supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: window.location.origin }
+  provider: 'google',
+  options: { redirectTo: 'https://troubleshooting-orchestrator.vercel.app' }
+});
       });
     });
   }
