@@ -5,16 +5,16 @@
   <title>Orchestrator Dashboard</title>
   <link rel="stylesheet" href="css/style.css" />
   <style>
-    .section { max-width: 600px; margin: 20px auto; text-align: left; background: #1a1a1a; padding: 20px; border-radius: 8px; }
+    .section { max-width: 700px; margin: 20px auto; text-align: left; background: #1a1a1a; padding: 20px; border-radius: 8px; }
     label { display: block; margin-top: 10px; }
     input, select, textarea { width: 100%; padding: 8px; margin-top: 4px; border-radius: 4px; border: none; }
     table { width: 100%; margin-top: 15px; border-collapse: collapse; }
-    th, td { border: 1px solid #333; padding: 6px; font-size: 13px; }
+    th, td { border: 1px solid #333; padding: 6px; font-size: 12px; }
     .hidden { display: none; }
   </style>
 </head>
 <body>
-  <div class="container" style="max-width: 700px;">
+  <div class="container" style="max-width: 750px;">
     <h1>Orchestrator Dashboard</h1>
     <p id="welcome-msg">Loading...</p>
 
@@ -93,11 +93,22 @@
       </table>
     </div>
 
+    <div class="section">
+      <h3>5. Participant Reports & Scores</h3>
+      <table id="reports-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Problem</th><th>Status</th><th>Avg CSAT</th><th>Credit Left</th><th>Turns</th><th>Root Cause?</th><th>Report</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
     <button id="logout-btn">Log Out</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script src="js/supabaseClient.js"></script>
+  <script src="js/pdfReport.js"></script>
   <script src="js/orchestrator.js"></script>
 </body>
 </html>
