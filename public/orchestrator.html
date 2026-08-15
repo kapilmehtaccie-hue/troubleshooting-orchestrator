@@ -4,16 +4,91 @@
   <meta charset="UTF-8" />
   <title>Orchestrator Dashboard</title>
   <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .section { max-width: 600px; margin: 20px auto; text-align: left; background: #1a1a1a; padding: 20px; border-radius: 8px; }
+    label { display: block; margin-top: 10px; }
+    input, select, textarea { width: 100%; padding: 8px; margin-top: 4px; border-radius: 4px; border: none; }
+    table { width: 100%; margin-top: 15px; border-collapse: collapse; }
+    th, td { border: 1px solid #333; padding: 6px; font-size: 13px; }
+    .hidden { display: none; }
+  </style>
 </head>
 <body>
-  <div class="container">
+  <div class="container" style="max-width: 700px;">
     <h1>Orchestrator Dashboard</h1>
     <p id="welcome-msg">Loading...</p>
-    <p><em>Full dashboard arrives in Phase 3.</em></p>
+
+    <div class="section">
+      <h3>1. Configure LLM Judge</h3>
+      <label>Provider</label>
+      <select id="llm-provider">
+        <option value="openai">OpenAI (GPT)</option>
+        <option value="anthropic">Anthropic (Claude)</option>
+        <option value="gemini">Google (Gemini)</option>
+        <option value="custom">Custom Provider</option>
+      </select>
+
+      <div id="custom-fields" class="hidden">
+        <label>Custom Endpoint URL</label>
+        <input type="text" id="custom-endpoint" placeholder="https://your-provider.com/v1/chat" />
+        <label>Custom Model Name</label>
+        <input type="text" id="custom-model" placeholder="e.g., my-model-v1" />
+      </div>
+
+      <label>API Key</label>
+      <input type="password" id="llm-api-key" placeholder="Paste your API key" />
+      <button id="save-llm-btn" style="margin-top:10px;">Save LLM Config</button>
+      <p id="llm-status"></p>
+    </div>
+
+    <div class="section">
+      <h3>2. Select Problem to Assign</h3>
+      <select id="problem-select"></select>
+    </div>
+
+    <div class="section">
+      <h3>3. Add Participants</h3>
+      <label>Entry Method</label>
+      <select id="entry-method">
+        <option value="single">Single Entry</option>
+        <option value="bulk">Bulk Paste (multiple lines)</option>
+        <option value="file">Upload File (.csv/.txt)</option>
+      </select>
+
+      <div id="single-entry">
+        <label>Name</label>
+        <input type="text" id="single-name" />
+        <label>Email</label>
+        <input type="email" id="single-email" />
+      </div>
+
+      <div id="bulk-entry" class="hidden">
+        <label>One per line — format: Name, Email</label>
+        <textarea id="bulk-text" rows="6" placeholder="Jane Doe, jane@example.com&#10;John Smith, john@example.com"></textarea>
+      </div>
+
+      <div id="file-entry" class="hidden">
+        <label>Upload CSV/TXT (columns: Name, Email — no header)</label>
+        <input type="file" id="file-upload" accept=".csv,.txt" />
+      </div>
+
+      <button id="assign-btn" style="margin-top:15px;">Assign Problem & Send Emails</button>
+      <p id="assign-status"></p>
+    </div>
+
+    <div class="section">
+      <h3>4. Your Assignments</h3>
+      <table id="assignments-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Problem</th><th>Status</th><th>Assigned</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
     <button id="logout-btn">Log Out</button>
   </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="js/supabaseClient.js"></script>
-  <script src="js/dashboard-stub.js"></script>
+  <script src="js/orchestrator.js"></script>
 </body>
 </html>
