@@ -78,7 +78,6 @@ async function assignAndSend() {
   statusEl.textContent = 'Processing...';
 
   const problemId = document.getElementById('problem-select').value;
-  const problemTitle = document.getElementById('problem-select').selectedOptions[0].textContent;
   const method = document.getElementById('entry-method').value;
 
   let participants = [];
@@ -109,17 +108,10 @@ async function assignAndSend() {
     status: 'assigned'
   }));
 
-  const { error } = await supabaseClient.from('assignments').insert(rows);
+  const { data: inserted, error } = await supabaseClient.from('assignments').insert(rows).select();
   if (error) { statusEl.textContent = `DB Error: ${error.message}`; return; }
 
-  const emailRes = await fetch('/api/sendAssignmentEmail', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSession.access_token}` },
-    body: JSON.stringify({ participants, problemTitle })
-  });
-  const emailResult = await emailRes.json();
-
-  statusEl.textContent = `Assigned ${participants.length} participant(s). Emails: ${emailResult.success ? 'sent' : 'failed - ' + emailResult.error}`;
+  statusEl.innerHTML = `Assigned ${participants.length} participant(s). Links below (also visible in table):`;
   await loadAssignments();
 }
 
