@@ -2,16 +2,45 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Your Exercise</title>
+  <title>Troubleshooting Exercise</title>
   <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .container { max-width: 700px; }
+    .stats { display: flex; justify-content: space-around; background: #1a1a1a; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
+    .stat { text-align: center; }
+    .log { text-align: left; background: #1a1a1a; padding: 15px; border-radius: 8px; max-height: 350px; overflow-y: auto; margin-bottom: 15px; }
+    .turn { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #333; }
+    .turn .q { color: #93c5fd; }
+    .turn .fb { color: #a3e635; font-size: 13px; }
+    textarea { width: 100%; padding: 8px; border-radius: 4px; border: none; }
+    .action-check { text-align: left; margin: 8px 0; }
+  </style>
 </head>
 <body>
   <div class="container">
     <h1>Troubleshooting Exercise</h1>
     <p id="status-msg">Checking access...</p>
+    <div id="exercise-area" style="display:none;">
+      <p><strong>Problem Statement:</strong> <span id="problem-statement"></span></p>
+      <div class="stats">
+        <div class="stat"><div id="csat-val">-</div><small>Last CSAT</small></div>
+        <div class="stat"><div id="credit-val">-</div><small>Question Credit</small></div>
+        <div class="stat"><div id="turn-val">-</div><small>Turn</small></div>
+      </div>
+      <div class="log" id="turn-log"></div>
+      <div class="action-check">
+        <label><input type="checkbox" id="action-flag" /> This is an Action attempt (e.g., a fix)</label>
+      </div>
+      <textarea id="question-input" rows="3" placeholder="Ask a question or propose an action..."></textarea>
+      <button id="submit-btn" style="margin-top:10px;">Submit</button>
+      <div id="session-ended-area" style="display:none;">
+        <h3 id="end-message"></h3>
+        <button id="report-btn">Download PDF Report</button>
+      </div>
+    </div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="js/supabaseClient.js"></script>
-  <script src="js/exercise-access-check.js"></script>
+  <script src="js/exercise.js"></script>
 </body>
 </html>
