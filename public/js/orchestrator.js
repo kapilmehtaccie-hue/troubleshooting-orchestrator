@@ -14,6 +14,7 @@ let currentSession, currentProfile;
 
   await loadProblems();
   await loadAssignments();
+  await loadReports();
   setupUIToggles();
 
   document.getElementById('test-llm-btn').addEventListener('click', testLLMConfig);
@@ -135,6 +136,7 @@ async function assignAndSend() {
 
   statusEl.textContent = `Assigned ${participants.length} participant(s). Copy their link(s) from the table below.`;
   await loadAssignments();
+  await loadReports();
 }
 
 async function loadAssignments() {
@@ -160,3 +162,30 @@ async function loadAssignments() {
   `;
   }).join('');
 }
+
+async function loadReports() {
+  const { data: sessions } = await supabaseClient
+    .from('sessions')
+    .select('id, ended_at, credit_remaining, turns_count, root_cause_identified, final_csat_avg, assignments(participant_name, participant_email, problems(title))')
+    .order('id', { ascending: false });
+
+  const tbody = document.querySelector('#reports-table tbody');
+  tbody.innerHTML = (sessions || []).map(s => `
+    <tr>
+      <td>${s.assignments.participant_name}</td>
+      <td>${s.assignments.participant_email}</td>
+      <td>${s.assignments.problems.title}</td>
+      <td>${s.ended_at ? 'Completed' : 'In Progress'}</td>
+      <td>${s.final_csat_avg ?? '-'}</td>
+      <td>${s.credit_remaining}</td>
+      <td>${s.turns_count}</td>
+      <td>${s.root_cause_identified ? 'Yes' : 'No'}</td>
+      <td>${s.ended_at ? `<button onclick="downloadOrchReport(${s.id})">PDF</button>` : '-'}</td>
+    </tr>
+  `).join('');
+}
+
+async function downloadOrchReport(sessionId) {
+  await fetchAndDownloadReport(sessionId, currentSession.access_token);
+}
+window.downloadOrchReport = downloadOrchReport;
