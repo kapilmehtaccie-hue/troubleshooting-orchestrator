@@ -35,6 +35,11 @@ let currentSessionRow, currentAssignment, currentProblem, accessToken;
   currentSessionRow = existingSession;
 
   if (existingSession.ended_at) {
+    document.getElementById('exercise-area').style.display = 'block';
+    document.getElementById('problem-statement').textContent = problem.initial_statement;
+    statusEl.style.display = 'none';
+    await loadPastTurns();
+    updateStats(null, existingSession.credit_remaining, existingSession.turns_count, problem.question_limit);
     showEnded(existingSession.root_cause_identified);
   } else {
     statusEl.style.display = 'none';
@@ -95,5 +100,7 @@ function showEnded(rootCauseIdentified) {
   document.getElementById('end-message').textContent = rootCauseIdentified
     ? '✅ Root cause identified. Exercise complete.'
     : '⏹ Exercise ended (credit or question limit reached).';
-  document.getElementById('report-btn').addEventListener('click', () => alert('PDF report generation arrives in Phase 6.'));
+  document.getElementById('report-btn').onclick = () => {
+    fetchAndDownloadReport(currentSessionRow.id, accessToken);
+  };
 }
