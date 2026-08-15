@@ -16,6 +16,7 @@ let currentSession, currentProfile;
   await loadAssignments();
   setupUIToggles();
 
+  document.getElementById('test-llm-btn').addEventListener('click', testLLMConfig);
   document.getElementById('save-llm-btn').addEventListener('click', saveLLMConfig);
   document.getElementById('assign-btn').addEventListener('click', assignAndSend);
   document.getElementById('logout-btn').addEventListener('click', async () => {
@@ -38,24 +39,45 @@ function setupUIToggles() {
 async function loadProblems() {
   const { data: problems } = await supabaseClient.from('problems').select('id, title').order('id');
   const select = document.getElementById('problem-select');
-  select.innerHTML = problems.map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+  select.innerHTML = (problems || []).map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+}
+
+function getLLMFormValues() {
+  return {
+    provider: document.getElementById('llm-provider').value,
+    apiKey: document.getElementById('llm-api-key').value.trim(),
+    customEndpoint: document.getElementById('custom-endpoint').value.trim(),
+    customModel: document.getElementById('custom-model').value.trim()
+  };
+}
+
+async function testLLMConfig() {
+  const statusEl = document.getElementById('llm-status');
+  const config = getLLMFormValues();
+  if (!config.apiKey || !config.customModel) { statusEl.textContent = 'API key and model name are required to test.'; return; }
+
+  statusEl.textContent = 'Testing...';
+  const res = await fetch('/api/testLLMConfig', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSession.access_token}` },
+    body: JSON.stringify(config)
+  });
+  const result = await res.json();
+  statusEl.textContent = result.success ? '✅ Connection successful.' : `❌ Failed: ${result.error}`;
 }
 
 async function saveLLMConfig() {
-  const provider = document.getElementById('llm-provider').value;
-  const apiKey = document.getElementById('llm-api-key').value.trim();
-  const customEndpoint = document.getElementById('custom-endpoint').value.trim();
-  const customModel = document.getElementById('custom-model').value.trim();
-
-  if (!apiKey) { document.getElementById('llm-status').textContent = 'API key required.'; return; }
+  const statusEl = document.getElementById('llm-status');
+  const config = getLLMFormValues();
+  if (!config.apiKey || !config.customModel) { statusEl.textContent = 'API key and model name are required.'; return; }
 
   const res = await fetch('/api/saveLLMConfig', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentSession.access_token}` },
-    body: JSON.stringify({ provider, apiKey, customEndpoint, customModel })
+    body: JSON.stringify(config)
   });
   const result = await res.json();
-  document.getElementById('llm-status').textContent = result.success ? 'Saved successfully.' : `Error: ${result.error}`;
+  statusEl.textContent = result.success ? 'Saved successfully.' : `Error: ${result.error}`;
 }
 
 function parseBulkText(text) {
@@ -108,10 +130,10 @@ async function assignAndSend() {
     status: 'assigned'
   }));
 
-  const { data: inserted, error } = await supabaseClient.from('assignments').insert(rows).select();
+  const { error } = await supabaseClient.from('assignments').insert(rows).select();
   if (error) { statusEl.textContent = `DB Error: ${error.message}`; return; }
 
-  statusEl.innerHTML = `Assigned ${participants.length} participant(s). Links below (also visible in table):`;
+  statusEl.textContent = `Assigned ${participants.length} participant(s). Copy their link(s) from the table below.`;
   await loadAssignments();
 }
 
@@ -135,5 +157,6 @@ async function loadAssignments() {
       <td>${new Date(a.assigned_at).toLocaleString()}</td>
       <td><button onclick="navigator.clipboard.writeText('${link}')">Copy Link</button></td>
     </tr>
-  `}).join('');
+  `;
+  }).join('');
 }
