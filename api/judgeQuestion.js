@@ -141,10 +141,14 @@ export default async function handler(req, res) {
     turns_count: turnsCount,
     evidence_destroyed: evidenceDestroyed
   };
+
   if (sessionEnded) {
+    const allScores = [...(history || []).map(h => h.csat_score), csat];
+    const avg = allScores.reduce((a, b) => a + b, 0) / allScores.length;
     updates.ended_at = new Date().toISOString();
     updates.final_credit = creditRemaining;
     updates.root_cause_identified = rootCauseIdentified;
+    updates.final_csat_avg = Math.round(avg * 10) / 10;
     await supabaseAdmin.from('assignments').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', session.assignment_id);
   } else {
     await supabaseAdmin.from('assignments').update({ status: 'in_progress' }).eq('id', session.assignment_id);
