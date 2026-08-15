@@ -11,6 +11,8 @@ export default async function handler(req, res) {
   if (authError || !user) return res.status(401).json({ success: false, error: 'Unauthorized' });
 
   const { provider, apiKey, customEndpoint, customModel } = req.body;
+  if (!customModel) return res.status(400).json({ success: false, error: 'Model name is required.' });
+
   const encryptedKey = encrypt(apiKey, process.env.LLM_KEY_ENCRYPTION_SECRET);
 
   const { error } = await supabaseAdmin.from('llm_config').upsert({
