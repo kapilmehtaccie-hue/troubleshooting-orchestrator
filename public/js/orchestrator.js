@@ -118,18 +118,22 @@ async function assignAndSend() {
 async function loadAssignments() {
   const { data: assignments } = await supabaseClient
     .from('assignments')
-    .select('participant_name, participant_email, status, assigned_at, problems(title)')
+    .select('id, token, participant_name, participant_email, status, assigned_at, problems(title)')
     .eq('orchestrator_id', currentProfile.id)
     .order('assigned_at', { ascending: false });
 
+  const siteUrl = 'https://troubleshooting-orchestrator.vercel.app';
   const tbody = document.querySelector('#assignments-table tbody');
-  tbody.innerHTML = (assignments || []).map(a => `
+  tbody.innerHTML = (assignments || []).map(a => {
+    const link = `${siteUrl}/exercise.html?token=${a.token}`;
+    return `
     <tr>
       <td>${a.participant_name}</td>
       <td>${a.participant_email}</td>
       <td>${a.problems?.title || ''}</td>
       <td>${a.status}</td>
       <td>${new Date(a.assigned_at).toLocaleString()}</td>
+      <td><button onclick="navigator.clipboard.writeText('${link}')">Copy Link</button></td>
     </tr>
-  `).join('');
+  `}).join('');
 }
