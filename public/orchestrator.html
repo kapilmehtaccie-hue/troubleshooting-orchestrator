@@ -22,7 +22,7 @@
       <h3>1. Configure LLM Judge</h3>
       <label>Provider</label>
       <select id="llm-provider">
-        <option value="openai">OpenAI (GPT)</option>
+        <option value="openai">OpenAI</option>
         <option value="anthropic">Anthropic (Claude)</option>
         <option value="gemini">Google (Gemini)</option>
         <option value="custom">Custom Provider</option>
@@ -30,13 +30,22 @@
 
       <div id="custom-fields" class="hidden">
         <label>Custom Endpoint URL</label>
-        <input type="text" id="custom-endpoint" placeholder="https://your-provider.com/v1/chat" />
-        <label>Custom Model Name</label>
-        <input type="text" id="custom-model" placeholder="e.g., my-model-v1" />
+        <input type="text" id="custom-endpoint" placeholder="https://your-provider.com/v1/chat/completions" />
       </div>
+
+      <label>Model Name (required — providers rename/retire models often)</label>
+      <input type="text" id="custom-model" placeholder="e.g., gpt-4o-mini, claude-3-5-sonnet-20241022, gemini-2.0-flash" />
+      <p style="font-size:12px; color:#999;">
+        Check current model names:
+        <a href="https://platform.openai.com/docs/models" target="_blank" style="color:#93c5fd;">OpenAI</a> |
+        <a href="https://docs.anthropic.com/en/docs/about-claude/models" target="_blank" style="color:#93c5fd;">Anthropic</a> |
+        <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" style="color:#93c5fd;">Gemini</a>
+      </p>
 
       <label>API Key</label>
       <input type="password" id="llm-api-key" placeholder="Paste your API key" />
+
+      <button id="test-llm-btn" style="margin-top:10px;">Test Connection</button>
       <button id="save-llm-btn" style="margin-top:10px;">Save LLM Config</button>
       <p id="llm-status"></p>
     </div>
