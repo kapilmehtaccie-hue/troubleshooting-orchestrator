@@ -34,19 +34,14 @@ let currentSessionRow, currentAssignment, currentProblem, accessToken;
   }
   currentSessionRow = existingSession;
 
+  statusEl.style.display = 'none';
+  document.getElementById('exercise-area').style.display = 'block';
+  document.getElementById('problem-statement').textContent = problem.initial_statement;
+  updateStats(null, existingSession.credit_remaining, existingSession.turns_count, problem.question_limit);
+  await loadPastTurns();
+
   if (existingSession.ended_at) {
-    document.getElementById('exercise-area').style.display = 'block';
-    document.getElementById('problem-statement').textContent = problem.initial_statement;
-    statusEl.style.display = 'none';
-    await loadPastTurns();
-    updateStats(null, existingSession.credit_remaining, existingSession.turns_count, problem.question_limit);
     showEnded(existingSession.root_cause_identified);
-  } else {
-    statusEl.style.display = 'none';
-    document.getElementById('exercise-area').style.display = 'block';
-    document.getElementById('problem-statement').textContent = problem.initial_statement;
-    updateStats(null, existingSession.credit_remaining, existingSession.turns_count, problem.question_limit);
-    await loadPastTurns();
   }
 
   document.getElementById('submit-btn').addEventListener('click', submitTurn);
@@ -56,10 +51,15 @@ async function loadPastTurns() {
   const { data: logs } = await supabaseClient.from('question_log').select('*').eq('session_id', currentSessionRow.id).order('turn_number');
   const logEl = document.getElementById('turn-log');
   logEl.innerHTML = (logs || []).map(renderTurn).join('');
+  logEl.scrollTop = logEl.scrollHeight;
 }
 
 function renderTurn(t) {
-  return `<div class="turn"><div class="q">Q${t.turn_number} [${t.phase}]: ${t.question_text}</div><div class="fb">CSAT ${t.csat_score}/10 | Credit Δ${t.credit_delta} — ${t.ai_feedback}</div></div>`;
+  return `<div class="turn">
+    <div class="q"><strong>You [Turn ${t.turn_number}]:</strong> ${t.question_text}</div>
+    <div class="a"><strong>Response:</strong> ${t.simulated_answer || '(no response recorded)'}</div>
+    <div class="fb">[${t.phase}] CSAT ${t.csat_score}/10 | Credit Δ${t.credit_delta} — ${t.ai_feedback}</div>
+  </div>`;
 }
 
 function updateStats(csat, credit, turn, limit) {
@@ -74,16 +74,28 @@ async function submitTurn() {
   if (!text) return;
   const isActionFlag = document.getElementById('action-flag').checked;
 
+  const submitBtn = document.getElementById('submit-btn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Thinking...';
+
   const res = await fetch('/api/judgeQuestion', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
     body: JSON.stringify({ sessionId: currentSessionRow.id, questionText: text, isActionFlag })
   });
   const result = await res.json();
+
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'Submit';
+
   if (result.error) { alert(result.error); return; }
 
   const logEl = document.getElementById('turn-log');
-  logEl.innerHTML += renderTurn({ turn_number: result.turnsCount, phase: result.phase, question_text: text, csat_score: result.csat, credit_delta: result.creditDelta, ai_feedback: result.feedback });
+  logEl.innerHTML += renderTurn({
+    turn_number: result.turnsCount, phase: result.phase, question_text: text,
+    simulated_answer: result.simulatedAnswer, csat_score: result.csat,
+    credit_delta: result.creditDelta, ai_feedback: result.feedback
+  });
   logEl.scrollTop = logEl.scrollHeight;
   updateStats(result.csat, result.creditRemaining, result.turnsCount, result.questionLimit);
   input.value = '';
@@ -93,7 +105,6 @@ async function submitTurn() {
 }
 
 function showEnded(rootCauseIdentified) {
-  document.getElementById('exercise-area').style.display = 'block';
   document.getElementById('question-input').disabled = true;
   document.getElementById('submit-btn').disabled = true;
   document.getElementById('session-ended-area').style.display = 'block';
