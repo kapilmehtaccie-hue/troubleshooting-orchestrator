@@ -1,15 +1,9 @@
-const DEFAULT_MODELS = {
-  openai: 'gpt-4o-mini',
-  anthropic: 'claude-3-5-sonnet-20241022',
-  gemini: 'gemini-1.5-flash'
-};
-
 async function callOpenAI(apiKey, model, systemPrompt, userPrompt) {
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: model || DEFAULT_MODELS.openai,
+      model,
       messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
       response_format: { type: 'json_object' },
       temperature: 0.2
@@ -29,7 +23,7 @@ async function callAnthropic(apiKey, model, systemPrompt, userPrompt) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: model || DEFAULT_MODELS.anthropic,
+      model,
       max_tokens: 500,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }]
@@ -41,8 +35,7 @@ async function callAnthropic(apiKey, model, systemPrompt, userPrompt) {
 }
 
 async function callGemini(apiKey, model, systemPrompt, userPrompt) {
-  const m = model || DEFAULT_MODELS.gemini;
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`, {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -56,7 +49,6 @@ async function callGemini(apiKey, model, systemPrompt, userPrompt) {
 }
 
 async function callCustom(apiKey, endpoint, model, systemPrompt, userPrompt) {
-  // Assumes OpenAI-compatible schema (common for most custom/self-hosted LLM gateways)
   const res = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -73,6 +65,7 @@ async function callCustom(apiKey, endpoint, model, systemPrompt, userPrompt) {
 
 export async function callLLM(config, systemPrompt, userPrompt) {
   const { provider, apiKey, customEndpoint, customModel } = config;
+  if (!customModel) throw new Error('Model name not configured.');
   switch (provider) {
     case 'openai': return callOpenAI(apiKey, customModel, systemPrompt, userPrompt);
     case 'anthropic': return callAnthropic(apiKey, customModel, systemPrompt, userPrompt);
