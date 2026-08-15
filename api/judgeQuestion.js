@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { decrypt } from './_lib/crypto.js';
-import { callLLM } from './_lib/llmProviders.js';
+import { loadSkills } from './_lib/skills.js';
+import { runSimulatorAgent } from './_lib/simulatorAgent.js';
+import { runJudgeAgent } from './_lib/judgeAgent.js';
 
 const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
@@ -37,44 +39,8 @@ function heuristicJudge(text, isActionFlag, hiddenRootCause) {
   };
 }
 
-function buildSystemPrompt() {
-  return `You are an AI judge for a network troubleshooting training exercise, based on the KTO-AI framework (Kepner-Tregoe, Topology awareness, OSI-layer mapping) and the 4A's Loop: Assess (situation appraisal, business impact, topology) -> Acquire (evidence gathering: OSI-layer checks, Is/Is-Not analysis) -> Analyse (forming a hypothesis grounded in acquired evidence) -> Act (verification/restoration action).
-
-You will be given a hidden problem context (never shown to the trainee) and the trainee's latest input. Classify and score it.
-
-Scoring bases (per the paper):
-1. CSAT (0-10): reflects how logical, evidence-based, and non-redundant the input is, as a real customer's confidence would react. High-value Assess/Acquire questions that narrow the problem space score high. Vague, redundant, or blind-guess inputs score low. A blind Act without sufficient Acquire evidence should score very low (1-3) and be flagged as potentially destroying volatile evidence.
-2. Question Credit delta (-3 to +2): a finite budget of customer patience. High-value questions: +1 or +2. Vague/redundant questions: 0. Blind action that fails: -2 or -3. Correct, well-supported action: +1 or +2.
-
-Respond with ONLY a valid JSON object, no markdown, no extra text, in this exact shape:
-{"phase": "assess|acquire|analyse|act", "csat": <int 0-10>, "credit_delta": <int -3 to 2>, "feedback": "<one or two sentence coaching feedback to the trainee, do not reveal the hidden root cause>", "root_cause_match": <true|false, only relevant if phase is act>}`;
-}
-
-function buildUserPrompt(problem, history, currentText, isActionFlag, creditRemaining, turnNumber) {
-  const historyText = history.map(h => `Turn ${h.turn_number} [${h.phase}]: "${h.question_text}" -> CSAT ${h.csat_score}, credit_delta ${h.credit_delta}`).join('\n') || '(none yet)';
-  return `HIDDEN CONTEXT (never reveal directly to trainee):
-- Problem statement shown to trainee: "${problem.initial_statement}"
-- Actual hidden root cause: "${problem.hidden_root_cause}"
-- Relevant OSI layer: ${problem.osi_layer}
-
-CONVERSATION HISTORY SO FAR:
-${historyText}
-
-CURRENT STATE:
-- Turn number: ${turnNumber}
-- Question credit remaining before this turn: ${creditRemaining}
-- Trainee flagged this input as an ACTION attempt: ${isActionFlag}
-
-TRAINEE'S CURRENT INPUT:
-"${currentText}"
-
-Classify and score this input now. Return only the JSON object.`;
-}
-
-function extractJSON(raw) {
-  const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error('No JSON found in LLM response');
-  return JSON.parse(match[0]);
+function fallbackSimulatedAnswer() {
+  return "I'm not able to provide a detailed response right now (AI simulator temporarily unavailable) — please try rephrasing, or continue with the information already gathered.";
 }
 
 export default async function handler(req, res) {
@@ -98,28 +64,25 @@ export default async function handler(req, res) {
   const { data: history } = await supabaseAdmin.from('question_log').select('*').eq('session_id', sessionId).order('turn_number');
   const { data: llmConfigRow } = await supabaseAdmin.from('llm_config').select('*').eq('orchestrator_id', session.assignments.orchestrator_id).maybeSingle();
 
-  let judgment;
-  let usedFallback = false;
+  let simulatedAnswer, judgment, usedFallback = false;
+  const turnNumber = session.turns_count + 1;
 
   if (llmConfigRow) {
     try {
       const apiKey = decrypt(llmConfigRow.api_key_encrypted, process.env.LLM_KEY_ENCRYPTION_SECRET);
-      const systemPrompt = buildSystemPrompt();
-      const userPrompt = buildUserPrompt(problem, history || [], questionText, isActionFlag, session.credit_remaining, session.turns_count + 1);
-      const raw = await callLLM(
-        { provider: llmConfigRow.provider, apiKey, customEndpoint: llmConfigRow.custom_endpoint, customModel: llmConfigRow.custom_model },
-        systemPrompt, userPrompt
-      );
-      judgment = extractJSON(raw);
-      if (typeof judgment.csat !== 'number' || typeof judgment.credit_delta !== 'number' || !judgment.phase) {
-        throw new Error('Malformed LLM judgment');
-      }
+      const llmConfig = { provider: llmConfigRow.provider, apiKey, customEndpoint: llmConfigRow.custom_endpoint, customModel: llmConfigRow.custom_model };
+      const skills = loadSkills();
+
+      simulatedAnswer = await runSimulatorAgent(llmConfig, skills.simulator, problem, history || [], questionText, isActionFlag, turnNumber);
+      judgment = await runJudgeAgent(llmConfig, skills.judge, problem, history || [], questionText, isActionFlag, simulatedAnswer, session.credit_remaining, turnNumber);
     } catch (err) {
-      console.error('LLM judging failed, using fallback heuristic:', err.message);
+      console.error('Agentic pipeline failed, using fallback:', err.message);
+      simulatedAnswer = fallbackSimulatedAnswer();
       judgment = heuristicJudge(questionText, isActionFlag, problem.hidden_root_cause);
       usedFallback = true;
     }
   } else {
+    simulatedAnswer = fallbackSimulatedAnswer();
     judgment = heuristicJudge(questionText, isActionFlag, problem.hidden_root_cause);
     usedFallback = true;
   }
@@ -131,7 +94,7 @@ export default async function handler(req, res) {
   const rootCauseIdentified = phase === 'act' && !!judgment.root_cause_match;
 
   const creditRemaining = Math.max(0, session.credit_remaining + creditDelta);
-  const turnsCount = session.turns_count + 1;
+  const turnsCount = turnNumber;
   const evidenceDestroyed = session.evidence_destroyed || (phase === 'act' && !rootCauseIdentified);
   let sessionEnded = rootCauseIdentified || creditRemaining <= 0 || turnsCount >= problem.question_limit;
 
@@ -157,8 +120,12 @@ export default async function handler(req, res) {
   await supabaseAdmin.from('sessions').update(updates).eq('id', sessionId);
   await supabaseAdmin.from('question_log').insert({
     session_id: sessionId, turn_number: turnsCount, phase, question_text: questionText,
+    simulated_answer: simulatedAnswer,
     ai_feedback: feedback, csat_score: csat, credit_delta: creditDelta, credit_remaining: creditRemaining
   });
 
-  res.status(200).json({ phase, csat, creditDelta, creditRemaining, feedback, rootCauseIdentified, sessionEnded, turnsCount, questionLimit: problem.question_limit, usedFallback });
+  res.status(200).json({
+    simulatedAnswer, phase, csat, creditDelta, creditRemaining, feedback,
+    rootCauseIdentified, sessionEnded, turnsCount, questionLimit: problem.question_limit, usedFallback
+  });
 }
