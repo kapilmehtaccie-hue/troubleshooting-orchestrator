@@ -10,7 +10,11 @@ async function callOpenAI(apiKey, model, systemPrompt, userPrompt) {
     })
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || 'OpenAI request failed');
+  if (!res.ok) {
+    const err = new Error(data.error?.message || 'OpenAI request failed');
+    err.status = res.status;
+    throw err;
+  }
   return data.choices[0].message.content;
 }
 
@@ -30,7 +34,11 @@ async function callAnthropic(apiKey, model, systemPrompt, userPrompt) {
     })
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || 'Anthropic request failed');
+  if (!res.ok) {
+    const err = new Error(data.error?.message || 'Anthropic request failed');
+    err.status = res.status;
+    throw err;
+  }
   return data.content[0].text;
 }
 
@@ -44,7 +52,11 @@ async function callGemini(apiKey, model, systemPrompt, userPrompt) {
     })
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || 'Gemini request failed');
+  if (!res.ok) {
+    const err = new Error(data.error?.message || 'Gemini request failed');
+    err.status = res.status;
+    throw err;
+  }
   return data.candidates[0].content.parts[0].text;
 }
 
@@ -59,18 +71,54 @@ async function callCustom(apiKey, endpoint, model, systemPrompt, userPrompt) {
     })
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || 'Custom provider request failed');
+  if (!res.ok) {
+    const err = new Error(data.error?.message || 'Custom provider request failed');
+    err.status = res.status;
+    throw err;
+  }
   return data.choices[0].message.content;
+}
+
+function isRetryableError(err) {
+  // Retry on rate-limit/capacity/server errors, not on auth/bad-request errors
+  if (err.status && [429, 500, 502, 503, 504].includes(err.status)) return true;
+  const msg = (err.message || '').toLowerCase();
+  return msg.includes('high demand') || msg.includes('overloaded') || msg.includes('rate limit') || msg.includes('try again');
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function callProviderRaw(provider, apiKey, endpoint, model, systemPrompt, userPrompt) {
+  switch (provider) {
+    case 'openai': return callOpenAI(apiKey, model, systemPrompt, userPrompt);
+    case 'anthropic': return callAnthropic(apiKey, model, systemPrompt, userPrompt);
+    case 'gemini': return callGemini(apiKey, model, systemPrompt, userPrompt);
+    case 'custom': return callCustom(apiKey, endpoint, model, systemPrompt, userPrompt);
+    default: throw new Error('Unknown provider');
+  }
 }
 
 export async function callLLM(config, systemPrompt, userPrompt) {
   const { provider, apiKey, customEndpoint, customModel } = config;
   if (!customModel) throw new Error('Model name not configured.');
-  switch (provider) {
-    case 'openai': return callOpenAI(apiKey, customModel, systemPrompt, userPrompt);
-    case 'anthropic': return callAnthropic(apiKey, customModel, systemPrompt, userPrompt);
-    case 'gemini': return callGemini(apiKey, customModel, systemPrompt, userPrompt);
-    case 'custom': return callCustom(apiKey, customEndpoint, customModel, systemPrompt, userPrompt);
-    default: throw new Error('Unknown provider');
+
+  const maxRetries = 2;
+  const baseDelayMs = 1200;
+  let lastError;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await callProviderRaw(provider, apiKey, customEndpoint, customModel, systemPrompt, userPrompt);
+    } catch (err) {
+      lastError = err;
+      const canRetry = attempt < maxRetries && isRetryableError(err);
+      if (!canRetry) throw err;
+      const waitMs = baseDelayMs * Math.pow(2, attempt); // 1.2s, then 2.4s
+      console.warn(`LLM call failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${waitMs}ms: ${err.message}`);
+      await delay(waitMs);
+    }
   }
+  throw lastError;
 }
