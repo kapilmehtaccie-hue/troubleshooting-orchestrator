@@ -1,15 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { encrypt } from './_lib/crypto.js';
 
 const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-
-function encrypt(text, secret) {
-  const key = crypto.createHash('sha256').update(secret).digest();
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-  const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
-  return iv.toString('hex') + ':' + encrypted.toString('hex');
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
