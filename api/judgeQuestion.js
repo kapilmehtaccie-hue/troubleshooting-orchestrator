@@ -4,13 +4,13 @@ import { callLLM } from './_lib/llmProviders.js';
 
 const supabaseAdmin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
-// --- Fallback heuristic (used only if LLM call/parsing fails) ---
 const KEYWORDS = {
   assess: ['impact', 'business', 'topology', 'affected', 'when did', 'scope', 'who is'],
   acquire: ['log', 'ping', 'check', 'layer', 'does it happen', 'isolate', 'test', 'trace', 'interface', 'config', 'mobile', 'other device'],
   analyse: ['i think', 'hypothesis', 'root cause', 'suspect', 'likely'],
   act: ['reload', 'reboot', 'restart', 'replace', 'fix', 'restore', 'swap', 'change the']
 };
+
 function heuristicJudge(text, isActionFlag, hiddenRootCause) {
   const lower = text.toLowerCase();
   let phase = 'acquire';
@@ -37,7 +37,6 @@ function heuristicJudge(text, isActionFlag, hiddenRootCause) {
   };
 }
 
-// --- Prompt construction ---
 function buildSystemPrompt() {
   return `You are an AI judge for a network troubleshooting training exercise, based on the KTO-AI framework (Kepner-Tregoe, Topology awareness, OSI-layer mapping) and the 4A's Loop: Assess (situation appraisal, business impact, topology) -> Acquire (evidence gathering: OSI-layer checks, Is/Is-Not analysis) -> Analyse (forming a hypothesis grounded in acquired evidence) -> Act (verification/restoration action).
 
