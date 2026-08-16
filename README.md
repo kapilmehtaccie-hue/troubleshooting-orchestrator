@@ -3,8 +3,9 @@
 An open-source, self-deployable training tool based on the KTO-AI Framework (Kepner-Tregoe, Topology awareness, OSI-layer mapping) and the 4A's Loop (Assess → Acquire → Analyse → Act), as presented in:
 
 > Kapil Mehta, Prashant Sumanprasad Bhadoria, Jaypal Baviskar. *An AI Orchestrator Model for Troubleshooting Skills Training in Network Engineering*. SIGCOMM Education Workshop 2026.
+https://a4ne-workshop.github.io/papers/a4ne26-paper6.pdf
 
-This tool lets an Orchestrator assign realistic, vague network problem statements to Participants, who must ask disciplined diagnostic questions (Assess/Acquire) before proposing a fix (Act). An AI agent pipeline plays the role of the customer/environment (answering questions in-character, narrowly, without leaking the root cause) and a second AI agent scores each turn on CSAT and Question Credit, mirroring real customer trust dynamics. At the end, participants get a PDF report with scores and framework-aligned coaching suggestions.
+This tool lets an Orchestrator assign realistic, vague network problem statements to Participants, who must ask disciplined diagnostic questions (Assess/Acquire) before proposing a fix (Act). An AI agent pipeline plays the role of the customer/environment and a second AI agent scores each turn on CSAT and Question Credit, mirroring real customer trust dynamics. At the end, participants get a PDF report with scores and framework-aligned coaching suggestions.
 
 ---
 
