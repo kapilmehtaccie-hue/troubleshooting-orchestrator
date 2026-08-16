@@ -20,18 +20,27 @@ function buildAndDownloadReport(data) {
   doc.text(`Question Credit Remaining: ${data.creditRemaining} / ${data.creditStart}`, 10, y); y += 6;
   doc.text(`Turns Used: ${data.turnsUsed} / ${data.questionLimit}`, 10, y); y += 6;
   doc.text(`Root Cause Identified: ${data.rootCauseIdentified ? 'Yes' : 'No'}`, 10, y); y += 6;
+
+  let groundingLabel = 'N/A';
+  if (data.finalActEvidenceGrounded === true) groundingLabel = 'Yes — supported by gathered evidence';
+  else if (data.finalActEvidenceGrounded === false) groundingLabel = 'No — correct but not clearly evidence-supported (guess/intuition)';
+  doc.text(`Final Solution Evidence-Grounded: ${groundingLabel}`, 10, y); y += 6;
+
   doc.text(`Diagnostic Evidence: ${data.evidenceDestroyed ? 'Potentially Destroyed (blind action taken)' : 'Preserved'}`, 10, y); y += 10;
 
   doc.setFontSize(13);
   doc.text('Turn-by-Turn Log', 10, y); y += 4;
 
-  const rows = data.logs.map(l => [l.turn_number, l.phase, l.question_text, l.csat_score, l.credit_delta, l.ai_feedback]);
+  const rows = data.logs.map(l => {
+    const groundedTag = l.phase === 'act' ? (l.evidence_grounded === true ? ' [Grounded]' : l.evidence_grounded === false ? ' [Not Grounded]' : '') : '';
+    return [l.turn_number, l.phase + groundedTag, l.question_text, l.csat_score, l.credit_delta, l.ai_feedback];
+  });
   doc.autoTable({
     startY: y,
     head: [['Turn', 'Phase', 'Question/Action', 'CSAT', 'Credit Δ', 'Feedback']],
     body: rows,
     styles: { fontSize: 8 },
-    columnStyles: { 2: { cellWidth: 45 }, 5: { cellWidth: 55 } }
+    columnStyles: { 2: { cellWidth: 42 }, 5: { cellWidth: 53 } }
   });
 
   let finalY = doc.lastAutoTable.finalY + 10;
