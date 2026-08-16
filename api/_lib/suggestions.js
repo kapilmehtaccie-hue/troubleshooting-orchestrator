@@ -5,20 +5,30 @@ export function generateSuggestions(logs, session, problem) {
     suggestions.push('You attempted an Act (solution/fix) before completing sufficient Assess and Acquire phases. Per the KTO-AI framework, ensure business impact, topology, and OSI-layer evidence are gathered before proposing an action — premature action risks destroying volatile diagnostic evidence.');
   }
 
+  const redundantTurns = logs.filter(l => (l.ai_feedback || '').toLowerCase().includes('already'));
+  if (redundantTurns.length > 0) {
+    suggestions.push(`${redundantTurns.length} of your questions repeated information already provided earlier. Track what you've already learned before asking further questions — repeating questions costs customer trust in real scenarios.`);
+  }
+
   const lowCsatTurns = logs.filter(l => l.csat_score < 4);
   if (lowCsatTurns.length > 0) {
-    suggestions.push(`${lowCsatTurns.length} of your inputs were vague or not clearly evidence-based (CSAT below 4). Ask specific, topology- or OSI-layer-grounded questions that narrow the problem space, rather than general or repeated ones.`);
+    suggestions.push(`${lowCsatTurns.length} of your inputs were vague, redundant, or not clearly evidence-based (CSAT below 4). Ask specific, topology- or OSI-layer-grounded questions that narrow the problem space, rather than general or repeated ones.`);
+  }
+
+  const finalActTurn = logs.slice().reverse().find(l => l.phase === 'act');
+  if (finalActTurn && session.root_cause_identified && finalActTurn.evidence_grounded === false) {
+    suggestions.push('Your final solution was correct, but it did not appear to be clearly supported by the evidence you gathered in this session. Per Kepner-Tregoe discipline ("stop guessing, start knowing"), aim to ground conclusions in acquired data rather than intuition, pattern-matching, or outside knowledge — even when the guess turns out right.');
   }
 
   if (session.evidence_destroyed) {
     suggestions.push('A blind action was taken during this session that may have destroyed volatile diagnostic evidence (e.g., logs, buffers, ARP tables) without resolving the issue. Always prioritize evidence preservation before restoration when the root cause is not yet confirmed.');
   }
 
-  if (session.root_cause_identified) {
+  if (session.root_cause_identified && finalActTurn && finalActTurn.evidence_grounded !== false) {
     suggestions.push('Root cause was correctly identified with supporting evidence — well done maintaining discipline through the Assess → Acquire → Analyse → Act sequence.');
   } else if (session.credit_remaining <= 0) {
     suggestions.push('Question Credit was exhausted before the root cause was found. Focus on high-value, non-redundant questions each turn to preserve customer trust and patience.');
-  } else if (logs.length >= problem.question_limit) {
+  } else if (logs.length >= problem.question_limit && !session.root_cause_identified) {
     suggestions.push('The question limit was reached before the root cause was confirmed. Practice narrowing the problem space more efficiently using OSI-layer mapping and Is/Is-Not analysis.');
   }
 
