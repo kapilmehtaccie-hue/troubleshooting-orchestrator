@@ -26,8 +26,8 @@ function heuristicJudge(text, isActionFlag, hiddenRootCause) {
     const matches = causeWords.filter(w => lower.includes(w));
     const correct = matches.length >= Math.ceil(causeWords.length * 0.4);
     return correct
-      ? { phase, csat: 9, credit_delta: 1, feedback: 'Correct root cause identified.', root_cause_match: true }
-      : { phase, csat: 2, credit_delta: -3, feedback: 'Action taken without sufficient evidence — may have destroyed diagnostic data.', root_cause_match: false };
+      ? { phase, csat: 9, credit_delta: 1, feedback: 'Correct root cause identified.', root_cause_match: true, evidence_grounded: null }
+      : { phase, csat: 2, credit_delta: -3, feedback: 'Action taken without sufficient evidence — may have destroyed diagnostic data.', root_cause_match: false, evidence_grounded: false };
   }
   const specific = text.trim().length > 15;
   return {
@@ -35,7 +35,8 @@ function heuristicJudge(text, isActionFlag, hiddenRootCause) {
     csat: specific ? 7 : 4,
     credit_delta: specific ? 1 : 0,
     feedback: specific ? `Reasonable ${phase}-phase question.` : `Question is vague for the ${phase} phase — be more specific.`,
-    root_cause_match: false
+    root_cause_match: false,
+    evidence_grounded: null
   };
 }
 
@@ -90,7 +91,8 @@ export default async function handler(req, res) {
   const phase = judgment.phase;
   const csat = Math.max(0, Math.min(10, judgment.csat));
   const creditDelta = Math.max(-3, Math.min(2, judgment.credit_delta));
-  const feedback = judgment.feedback + (usedFallback ? ' [Note: scored by fallback rules — AI judge unavailable]' : '');
+  const evidenceGrounded = typeof judgment.evidence_grounded === 'boolean' ? judgment.evidence_grounded : null;
+  let feedback = judgment.feedback + (usedFallback ? ' [Note: scored by fallback rules — AI judge unavailable]' : '');
   const rootCauseIdentified = phase === 'act' && !!judgment.root_cause_match;
 
   const creditRemaining = Math.max(0, session.credit_remaining + creditDelta);
@@ -121,11 +123,12 @@ export default async function handler(req, res) {
   await supabaseAdmin.from('question_log').insert({
     session_id: sessionId, turn_number: turnsCount, phase, question_text: questionText,
     simulated_answer: simulatedAnswer,
-    ai_feedback: feedback, csat_score: csat, credit_delta: creditDelta, credit_remaining: creditRemaining
+    ai_feedback: feedback, csat_score: csat, credit_delta: creditDelta, credit_remaining: creditRemaining,
+    evidence_grounded: evidenceGrounded
   });
 
   res.status(200).json({
     simulatedAnswer, phase, csat, creditDelta, creditRemaining, feedback,
-    rootCauseIdentified, sessionEnded, turnsCount, questionLimit: problem.question_limit, usedFallback
+    rootCauseIdentified, evidenceGrounded, sessionEnded, turnsCount, questionLimit: problem.question_limit, usedFallback
   });
 }
