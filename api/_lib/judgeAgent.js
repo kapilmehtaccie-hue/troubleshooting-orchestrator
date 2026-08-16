@@ -10,7 +10,7 @@ function buildJudgeUserPrompt(problem, history, currentText, isActionFlag, simul
 - Actual hidden root cause: "${problem.hidden_root_cause}"
 - Relevant OSI layer: ${problem.osi_layer}
 
-FULL CONVERSATION HISTORY SO FAR (check this AND the original problem statement above for redundancy):
+FULL CONVERSATION HISTORY SO FAR (check this AND the original problem statement above for redundancy, and for evidence-grounding if this turn is an Act):
 ${historyText}
 
 CURRENT STATE:
@@ -24,7 +24,7 @@ TRAINEE'S CURRENT INPUT:
 SIMULATOR'S RESPONSE TO THE TRAINEE (what the trainee just learned, if anything new):
 "${simulatedAnswer}"
 
-First, check: does the trainee's input ask for information already present in the original problem statement or an earlier turn above? Then classify and score accordingly per your skill instructions. Return only the JSON object.`;
+First, check redundancy against the original problem statement and conversation history above. If this is an Act phase input, also reason step-by-step (per your skill instructions) about whether the proposed action is evidence-grounded. Then classify and score. Return only the JSON object.`;
 }
 
 export async function runJudgeAgent(llmConfig, skillText, problem, history, currentText, isActionFlag, simulatedAnswer, creditRemaining, turnNumber) {
