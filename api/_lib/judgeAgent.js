@@ -2,15 +2,15 @@ import { callLLM } from './llmProviders.js';
 
 function buildJudgeUserPrompt(problem, history, currentText, isActionFlag, simulatedAnswer, creditRemaining, turnNumber) {
   const historyText = history.map(h =>
-    `Turn ${h.turn_number} [${h.phase}]: "${h.question_text}" -> CSAT ${h.csat_score}, credit_delta ${h.credit_delta}`
+    `Turn ${h.turn_number} [${h.phase}]: Trainee asked "${h.question_text}" -> Simulator answered: "${h.simulated_answer ?? ''}" (Scored: CSAT ${h.csat_score}, credit_delta ${h.credit_delta})`
   ).join('\n') || '(none yet)';
 
   return `HIDDEN CONTEXT:
-- Problem statement shown to trainee: "${problem.initial_statement}"
+- Original problem statement shown to trainee at the start: "${problem.initial_statement}"
 - Actual hidden root cause: "${problem.hidden_root_cause}"
 - Relevant OSI layer: ${problem.osi_layer}
 
-CONVERSATION HISTORY SO FAR:
+FULL CONVERSATION HISTORY SO FAR (check this AND the original problem statement above for redundancy):
 ${historyText}
 
 CURRENT STATE:
@@ -21,10 +21,10 @@ CURRENT STATE:
 TRAINEE'S CURRENT INPUT:
 "${currentText}"
 
-SIMULATOR'S RESPONSE TO THE TRAINEE (what the trainee just learned):
+SIMULATOR'S RESPONSE TO THE TRAINEE (what the trainee just learned, if anything new):
 "${simulatedAnswer}"
 
-Classify and score the trainee's input now, taking into account whether it was a valuable, non-redundant question given what they already knew. Return only the JSON object.`;
+First, check: does the trainee's input ask for information already present in the original problem statement or an earlier turn above? Then classify and score accordingly per your skill instructions. Return only the JSON object.`;
 }
 
 export async function runJudgeAgent(llmConfig, skillText, problem, history, currentText, isActionFlag, simulatedAnswer, creditRemaining, turnNumber) {
