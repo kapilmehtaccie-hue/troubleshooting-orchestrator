@@ -129,7 +129,6 @@ This tool uses an agentic architecture with behavior defined in plain-language s
 | `skills/simulator-agent.md` | How the AI plays the customer/environment — tone, strictness about not over-answering, how it handles vague questions |
 | `skills/judge-agent.md` | Scoring rubric — how CSAT and Question Credit are calculated per phase |
 
-To change how the AI behaves, edit these Markdown files directly — no JavaScript knowledge required. For example, to make the Simulator even stricter about not volunteering information, add more worked examples to `simulator-agent.md`.
 
 ---
 
