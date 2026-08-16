@@ -60,6 +60,26 @@ async function callGemini(apiKey, model, systemPrompt, userPrompt) {
   return data.candidates[0].content.parts[0].text;
 }
 
+async function callGroq(apiKey, model, systemPrompt, userPrompt) {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }],
+      response_format: { type: 'json_object' },
+      temperature: 0.2
+    })
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const err = new Error(data.error?.message || 'Groq request failed');
+    err.status = res.status;
+    throw err;
+  }
+  return data.choices[0].message.content;
+}
+
 async function callCustom(apiKey, endpoint, model, systemPrompt, userPrompt) {
   const res = await fetch(endpoint, {
     method: 'POST',
@@ -80,7 +100,6 @@ async function callCustom(apiKey, endpoint, model, systemPrompt, userPrompt) {
 }
 
 function isRetryableError(err) {
-  // Retry on rate-limit/capacity/server errors, not on auth/bad-request errors
   if (err.status && [429, 500, 502, 503, 504].includes(err.status)) return true;
   const msg = (err.message || '').toLowerCase();
   return msg.includes('high demand') || msg.includes('overloaded') || msg.includes('rate limit') || msg.includes('try again');
@@ -95,6 +114,7 @@ async function callProviderRaw(provider, apiKey, endpoint, model, systemPrompt, 
     case 'openai': return callOpenAI(apiKey, model, systemPrompt, userPrompt);
     case 'anthropic': return callAnthropic(apiKey, model, systemPrompt, userPrompt);
     case 'gemini': return callGemini(apiKey, model, systemPrompt, userPrompt);
+    case 'groq': return callGroq(apiKey, model, systemPrompt, userPrompt);
     case 'custom': return callCustom(apiKey, endpoint, model, systemPrompt, userPrompt);
     default: throw new Error('Unknown provider');
   }
@@ -115,7 +135,7 @@ export async function callLLM(config, systemPrompt, userPrompt) {
       lastError = err;
       const canRetry = attempt < maxRetries && isRetryableError(err);
       if (!canRetry) throw err;
-      const waitMs = baseDelayMs * Math.pow(2, attempt); // 1.2s, then 2.4s
+      const waitMs = baseDelayMs * Math.pow(2, attempt);
       console.warn(`LLM call failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${waitMs}ms: ${err.message}`);
       await delay(waitMs);
     }
