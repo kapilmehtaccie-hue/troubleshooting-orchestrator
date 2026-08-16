@@ -28,6 +28,9 @@ export default async function handler(req, res) {
   const finalCsatAvg = csatScores.length ? (csatScores.reduce((a, b) => a + b, 0) / csatScores.length) : 0;
   const suggestions = generateSuggestions(logs || [], session, problem);
 
+  const finalActTurn = (logs || []).slice().reverse().find(l => l.phase === 'act');
+  const finalActEvidenceGrounded = finalActTurn ? finalActTurn.evidence_grounded : null;
+
   res.status(200).json({
     participantName: session.assignments.participant_name,
     participantEmail: session.assignments.participant_email,
@@ -40,6 +43,7 @@ export default async function handler(req, res) {
     turnsUsed: session.turns_count,
     questionLimit: problem.question_limit,
     rootCauseIdentified: session.root_cause_identified,
+    finalActEvidenceGrounded,
     evidenceDestroyed: session.evidence_destroyed,
     sessionEnded: !!session.ended_at,
     startedAt: session.started_at,
