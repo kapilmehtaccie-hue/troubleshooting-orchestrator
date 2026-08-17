@@ -15,11 +15,14 @@ let currentSession, currentProfile;
   await loadProblems();
   await loadAssignments();
   await loadReports();
+  await loadLLMConfigStatus();
   setupUIToggles();
 
   document.getElementById('test-llm-btn').addEventListener('click', testLLMConfig);
   document.getElementById('save-llm-btn').addEventListener('click', saveLLMConfig);
   document.getElementById('assign-btn').addEventListener('click', assignAndSend);
+  document.getElementById('upload-problems-btn').addEventListener('click', uploadProblems);
+  document.getElementById('download-sample-btn').addEventListener('click', downloadSampleCSV);
   document.getElementById('logout-btn').addEventListener('click', async () => {
     await supabaseClient.auth.signOut();
     window.location.href = '/index.html';
@@ -35,12 +38,20 @@ function setupUIToggles() {
     document.getElementById('bulk-entry').classList.toggle('hidden', e.target.value !== 'bulk');
     document.getElementById('file-entry').classList.toggle('hidden', e.target.value !== 'file');
   });
+  document.getElementById('problem-source').addEventListener('change', async (e) => {
+    document.getElementById('upload-area').classList.toggle('hidden', e.target.value !== 'upload');
+    await loadProblems();
+  });
 }
 
-async function loadProblems() {
-  const { data: problems } = await supabaseClient.from('problems').select('id, title').order('id');
-  const select = document.getElementById('problem-select');
-  select.innerHTML = (problems || []).map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+async function loadLLMConfigStatus() {
+  const { data: config } = await supabaseClient.from('llm_config').select('provider, custom_model, created_at').eq('orchestrator_id', currentProfile.id).maybeSingle();
+  const statusEl = document.getElementById('llm-status');
+  if (config) {
+    statusEl.textContent = `Currently saved: ${config.provider} / ${config.custom_model} (last updated ${new Date(config.created_at).toLocaleString()}). Enter a new key above only if you want to change it.`;
+  } else {
+    statusEl.textContent = 'No LLM configured yet.';
+  }
 }
 
 function getLLMFormValues() {
@@ -79,6 +90,128 @@ async function saveLLMConfig() {
   });
   const result = await res.json();
   statusEl.textContent = result.success ? 'Saved successfully.' : `Error: ${result.error}`;
+  if (result.success) await loadLLMConfigStatus();
+}
+
+async function loadProblems() {
+  const source = document.getElementById('problem-source').value;
+  let query = supabaseClient.from('problems').select('id, title').order('id');
+  query = source === 'default'
+    ? query.eq('is_default', true)
+    : query.eq('created_by', currentProfile.id);
+
+  const { data: problems } = await query;
+  const select = document.getElementById('problem-select');
+  select.innerHTML = (problems || []).map(p => `<option value="${p.id}">${p.title}</option>`).join('');
+  if (!problems || problems.length === 0) {
+    select.innerHTML = `<option value="">${source === 'upload' ? 'No uploaded problems yet — upload a file above' : 'No default problems found'}</option>`;
+  }
+}
+
+function parseDelimitedText(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const rows = lines.map(parseCSVLine);
+  const header = rows[0].map(h => h.trim().toLowerCase());
+  return rows.slice(1).map(row => {
+    const obj = {};
+    header.forEach((h, i) => obj[h] = (row[i] || '').trim());
+    return obj;
+  });
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') { inQuotes = !inQuotes; }
+    else if (char === ',' && !inQuotes) { result.push(current); current = ''; }
+    else { current += char; }
+  }
+  result.push(current);
+  return result;
+}
+
+function parseXLSX(arrayBuffer) {
+  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+  return rows.map(r => {
+    const normalized = {};
+    Object.keys(r).forEach(k => normalized[k.trim().toLowerCase()] = String(r[k]).trim());
+    return normalized;
+  });
+}
+
+function validateAndNormalizeProblems(rawRows) {
+  const errors = [];
+  const valid = [];
+  rawRows.forEach((row, idx) => {
+    const rowNum = idx + 2; // account for header row
+    if (!row.title || !row.initial_statement || !row.hidden_root_cause) {
+      errors.push(`Row ${rowNum}: missing required field (title, initial_statement, or hidden_root_cause).`);
+      return;
+    }
+    valid.push({
+      title: row.title,
+      initial_statement: row.initial_statement,
+      hidden_root_cause: row.hidden_root_cause,
+      osi_layer: row.osi_layer || null,
+      case_file: row.case_file || null,
+      credit_start: parseInt(row.credit_start) || 10,
+      question_limit: parseInt(row.question_limit) || 14,
+      is_default: false,
+      created_by: currentProfile.id
+    });
+  });
+  return { valid, errors };
+}
+
+async function uploadProblems() {
+  const statusEl = document.getElementById('upload-status');
+  const file = document.getElementById('problem-file-upload').files[0];
+  if (!file) { statusEl.textContent = 'Please choose a file first.'; return; }
+
+  statusEl.textContent = 'Parsing...';
+  let rawRows;
+  try {
+    if (file.name.endsWith('.xlsx')) {
+      const buffer = await file.arrayBuffer();
+      rawRows = parseXLSX(buffer);
+    } else {
+      const text = await file.text();
+      rawRows = parseDelimitedText(text);
+    }
+  } catch (err) {
+    statusEl.textContent = `Failed to parse file: ${err.message}`;
+    return;
+  }
+
+  const { valid, errors } = validateAndNormalizeProblems(rawRows);
+  if (valid.length === 0) {
+    statusEl.textContent = `No valid rows found. ${errors.join(' ')}`;
+    return;
+  }
+
+  const { error } = await supabaseClient.from('problems').insert(valid);
+  if (error) { statusEl.textContent = `Database error: ${error.message}`; return; }
+
+  statusEl.textContent = `Uploaded ${valid.length} problem(s) successfully.` + (errors.length ? ` ${errors.length} row(s) skipped: ${errors.join(' ')}` : '');
+  await loadProblems();
+}
+
+function downloadSampleCSV(e) {
+  e.preventDefault();
+  const sample = `title,initial_statement,hidden_root_cause,osi_layer,case_file,credit_start,question_limit
+Slow VPN,"My VPN feels sluggish during video calls.","MTU mismatch causing fragmentation",L3/L4,"ENVIRONMENT: Office VPN client on split-tunnel config. TIMELINE: started after ISP router firmware update. SYMPTOMS: video calls degrade, file transfers unaffected. ACTION OUTCOMES: lowering MTU resolves it.",10,14`;
+  const blob = new Blob([sample], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'sample_problems.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function parseBulkText(text) {
@@ -101,6 +234,7 @@ async function assignAndSend() {
   statusEl.textContent = 'Processing...';
 
   const problemId = document.getElementById('problem-select').value;
+  if (!problemId) { statusEl.textContent = 'No problem selected.'; return; }
   const method = document.getElementById('entry-method').value;
 
   let participants = [];
@@ -146,7 +280,7 @@ async function loadAssignments() {
     .eq('orchestrator_id', currentProfile.id)
     .order('assigned_at', { ascending: false });
 
-  const siteUrl = 'https://troubleshooting-orchestrator.vercel.app';
+  const siteUrl = window.location.origin;
   const tbody = document.querySelector('#assignments-table tbody');
   tbody.innerHTML = (assignments || []).map(a => {
     const link = `${siteUrl}/exercise.html?token=${a.token}`;
