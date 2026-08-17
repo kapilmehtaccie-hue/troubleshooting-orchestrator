@@ -53,7 +53,26 @@
     </div>
 
     <div class="section">
-      <h3>2. Select Problem to Assign</h3>
+      <h3>2. Problem Statements</h3>
+      <label>Source</label>
+      <select id="problem-source">
+        <option value="default">Use Default Problems (30 built-in)</option>
+        <option value="upload">Upload My Own Problem Statements</option>
+      </select>
+
+      <div id="upload-area" class="hidden" style="margin-top:12px;">
+        <p style="font-size:13px; color:#999;">
+          Upload a .csv, .txt, or .xlsx file. Required columns: <code>title, initial_statement, hidden_root_cause</code>.
+          Optional: <code>osi_layer, case_file, credit_start, question_limit</code>.
+          <a href="templates/problem_template_readme.md" target="_blank" style="color:#93c5fd;">View full format guide</a> |
+          <a href="#" id="download-sample-btn" style="color:#93c5fd;">Download sample CSV</a>
+        </p>
+        <input type="file" id="problem-file-upload" accept=".csv,.txt,.xlsx" />
+        <button id="upload-problems-btn" style="margin-top:10px;">Upload & Parse</button>
+        <p id="upload-status"></p>
+      </div>
+
+      <label style="margin-top:15px;">Select Problem to Assign</label>
       <select id="problem-select"></select>
     </div>
 
@@ -109,6 +128,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="js/supabaseClient.js"></script>
   <script src="js/pdfReport.js"></script>
   <script src="js/orchestrator.js"></script>
