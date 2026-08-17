@@ -109,6 +109,10 @@ async function loadProblems() {
   }
 }
 
+function stripBOM(text) {
+  return text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+}
+
 function parseCSVFull(text) {
   const rows = [];
   let row = [];
@@ -193,7 +197,7 @@ async function uploadProblems() {
       const buffer = await file.arrayBuffer();
       rawRows = parseXLSX(buffer);
     } else {
-      const text = await file.text();
+      const text = stripBOM(await file.text());
       rawRows = parseDelimitedText(text);
     }
   } catch (err) {
@@ -201,16 +205,27 @@ async function uploadProblems() {
     return;
   }
 
+  if (rawRows.length === 0) {
+    statusEl.textContent = 'File appears empty, or only a header row was found.';
+    return;
+  }
+
   const { valid, errors } = validateAndNormalizeProblems(rawRows);
+
   if (valid.length === 0) {
-    statusEl.textContent = `No valid rows found. ${errors.join(' ')}`;
+    const preview = errors.slice(0, 3).join(' ');
+    const more = errors.length > 3 ? ` (+${errors.length - 3} more similar errors)` : '';
+    statusEl.textContent = `No valid rows found. ${preview}${more}`;
+    console.warn('Full upload errors:', errors);
     return;
   }
 
   const { error } = await supabaseClient.from('problems').insert(valid);
   if (error) { statusEl.textContent = `Database error: ${error.message}`; return; }
 
-  statusEl.textContent = `Uploaded ${valid.length} problem(s) successfully.` + (errors.length ? ` ${errors.length} row(s) skipped: ${errors.join(' ')}` : '');
+  const errorNote = errors.length ? ` (${errors.length} row(s) skipped — check console for details)` : '';
+  statusEl.textContent = `Uploaded ${valid.length} problem(s) successfully.${errorNote}`;
+  if (errors.length) console.warn('Skipped rows:', errors);
   await loadProblems();
 }
 
