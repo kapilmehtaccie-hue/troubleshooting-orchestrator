@@ -102,35 +102,48 @@ async function loadProblems() {
 
   const { data: problems } = await query;
   const select = document.getElementById('problem-select');
-  select.innerHTML = (problems || []).map(p => `<option value="${p.id}">${p.title}</option>`).join('');
   if (!problems || problems.length === 0) {
     select.innerHTML = `<option value="">${source === 'upload' ? 'No uploaded problems yet — upload a file above' : 'No default problems found'}</option>`;
+  } else {
+    select.innerHTML = problems.map(p => `<option value="${p.id}">${p.title}</option>`).join('');
   }
 }
 
+function parseCSVFull(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (inQuotes) {
+      if (char === '"' && next === '"') { field += '"'; i++; }
+      else if (char === '"') { inQuotes = false; }
+      else { field += char; }
+    } else {
+      if (char === '"') { inQuotes = true; }
+      else if (char === ',') { row.push(field); field = ''; }
+      else if (char === '\r') { /* skip, handle \n separately */ }
+      else if (char === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else { field += char; }
+    }
+  }
+  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+  return rows;
+}
+
 function parseDelimitedText(text) {
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-  const rows = lines.map(parseCSVLine);
+  const rows = parseCSVFull(text);
+  if (rows.length === 0) return [];
   const header = rows[0].map(h => h.trim().toLowerCase());
-  return rows.slice(1).map(row => {
+  return rows.slice(1).filter(r => r.some(cell => cell && cell.trim())).map(row => {
     const obj = {};
     header.forEach((h, i) => obj[h] = (row[i] || '').trim());
     return obj;
   });
-}
-
-function parseCSVLine(line) {
-  const result = [];
-  let current = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') { inQuotes = !inQuotes; }
-    else if (char === ',' && !inQuotes) { result.push(current); current = ''; }
-    else { current += char; }
-  }
-  result.push(current);
-  return result;
 }
 
 function parseXLSX(arrayBuffer) {
